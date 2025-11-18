@@ -1,9 +1,14 @@
+
 import React, { useState } from 'react';
 import { GoogleGenAI } from '@google/genai';
 import { Video, Download, RefreshCw, Play, Clock, AlertCircle, Sparkles, Wand2 } from 'lucide-react';
 import { VIDEO_PROMPT_TEMPLATE, PROJECT_TITLE, PROJECT_DESCRIPTION, PHASES } from '../utils/data';
 
-export const VideoGenerator: React.FC = () => {
+interface VideoGeneratorProps {
+    apiKey: string;
+}
+
+export const VideoGenerator: React.FC<VideoGeneratorProps> = ({ apiKey }) => {
   const [prompt, setPrompt] = useState(VIDEO_PROMPT_TEMPLATE.trim());
   const [aspectRatio, setAspectRatio] = useState<'16:9' | '9:16'>('16:9');
   const [generating, setGenerating] = useState(false);
@@ -16,9 +21,8 @@ export const VideoGenerator: React.FC = () => {
     setOptimizing(true);
     setError(null);
     try {
-      const apiKey = process.env.API_KEY;
       if (!apiKey) {
-        throw new Error("يرجى التأكد من اختيار مفتاح API من الشريط العلوي أولاً.");
+        throw new Error("يرجى إدخال مفتاح API أولاً.");
       }
 
       const ai = new GoogleGenAI({ apiKey });
@@ -35,9 +39,10 @@ export const VideoGenerator: React.FC = () => {
         contents: `You are a professional video director. Create a detailed prompt for an AI video generation model (Veo) based on this project data:
         ${projectContext}
         
-        The video prompt should describe a cinematic scene in an Omani school setting.
-        Visuals: Omani students in white dishdasha and kumma, organizing a healthy food exhibition, fresh fruits, vegetables, positive atmosphere, sunlight.
-        Style: 4k, Photorealistic, highly detailed, slow cinematic motion.
+        The video prompt should describe a cinematic scene in an Omani school setting (Omani white dishdasha for boys, traditional school uniform for girls).
+        Scenario: Show the consequence of unhealthy food vs healthy food.
+        Visuals: A student feeling sick/dizzy holding junk food vs happy students eating fruits/dates. Hospital setting background faded in to show risk.
+        Style: 4k, Photorealistic, highly detailed, slow cinematic motion, Omani architecture.
         Output ONLY the English prompt text, around 80 words. Do not include markdown.`
       });
 
@@ -59,9 +64,8 @@ export const VideoGenerator: React.FC = () => {
     setStatusMessage('جاري تهيئة نموذج Veo...');
 
     try {
-      const apiKey = process.env.API_KEY;
       if (!apiKey) {
-        throw new Error("API Key not found. Please select a key first.");
+        throw new Error("API Key missing.");
       }
 
       const ai = new GoogleGenAI({ apiKey });
@@ -88,7 +92,7 @@ export const VideoGenerator: React.FC = () => {
       }
 
       if (operation.error) {
-        throw new Error(`${operation.error.message}`);
+        throw new Error(`${(operation.error as any).message}`);
       }
 
       const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;

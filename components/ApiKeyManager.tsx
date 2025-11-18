@@ -1,24 +1,41 @@
+
 import React, { useState, useEffect } from 'react';
-import { Key, CheckCircle, ExternalLink } from 'lucide-react';
+import { Key, CheckCircle, ExternalLink, Settings } from 'lucide-react';
 
 interface ApiKeyManagerProps {
-  onKeySelected: () => void;
+  onKeyProvided: (key: string) => void;
 }
 
-export const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({ onKeySelected }) => {
+export const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({ onKeyProvided }) => {
   const [hasKey, setHasKey] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [manualMode, setManualMode] = useState(false);
+  const [manualKey, setManualKey] = useState('');
 
   useEffect(() => {
     checkKey();
   }, []);
 
   const checkKey = async () => {
+    // Check if we are in AI Studio environment
     if (window.aistudio && window.aistudio.hasSelectedApiKey) {
       const selected = await window.aistudio.hasSelectedApiKey();
-      setHasKey(selected);
       if (selected) {
-        onKeySelected();
+        // In AI Studio, the key is injected into process.env automatically
+        if (process.env.API_KEY) {
+            onKeyProvided(process.env.API_KEY);
+            setHasKey(true);
+        }
+      }
+    } else {
+      // Not in AI Studio (e.g. GitHub Pages), check local storage or wait for manual input
+      const storedKey = localStorage.getItem('gemini_api_key');
+      if (storedKey) {
+        onKeyProvided(storedKey);
+        setHasKey(true);
+      } else {
+        // Enable manual mode by default if environment is missing
+        setManualMode(true);
       }
     }
     setLoading(false);
@@ -28,26 +45,69 @@ export const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({ onKeySelected }) =
     if (window.aistudio && window.aistudio.openSelectKey) {
       try {
         await window.aistudio.openSelectKey();
-        // Assume success or re-check
         const selected = await window.aistudio.hasSelectedApiKey();
-        setHasKey(selected);
-        if(selected) onKeySelected();
+        if(selected && process.env.API_KEY) {
+             onKeyProvided(process.env.API_KEY);
+             setHasKey(true);
+        }
       } catch (error) {
         console.error("Error selecting key:", error);
       }
     } else {
-        alert("Google AI Studio environment not detected.");
+        setManualMode(true);
+    }
+  };
+
+  const saveManualKey = () => {
+    if (manualKey.trim()) {
+        localStorage.setItem('gemini_api_key', manualKey.trim());
+        onKeyProvided(manualKey.trim());
+        setHasKey(true);
+        setManualMode(false);
     }
   };
 
   if (loading) return null;
 
+  if (manualMode && !hasKey) {
+      return (
+        <div className="flex items-center gap-2">
+            <input 
+                type="password" 
+                placeholder="أدخل مفتاح API..." 
+                className="border border-slate-300 rounded px-2 py-1 text-sm w-32 sm:w-48"
+                value={manualKey}
+                onChange={(e) => setManualKey(e.target.value)}
+            />
+            <button 
+                onClick={saveManualKey}
+                className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
+            >
+                حفظ
+            </button>
+             <a 
+                href="https://aistudio.google.com/app/apikey" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-blue-500 hover:text-blue-700"
+                title="الحصول على مفتاح"
+              >
+                <ExternalLink size={14} />
+              </a>
+        </div>
+      )
+  }
+
   if (hasKey) {
     return (
-      <div className="flex items-center gap-2 text-green-600 bg-green-50 px-3 py-1 rounded-full text-sm border border-green-200">
+      <button 
+        onClick={() => setManualMode(true)}
+        title="تغيير المفتاح"
+        className="flex items-center gap-2 text-green-600 bg-green-50 px-3 py-1 rounded-full text-sm border border-green-200 hover:bg-green-100 transition-colors"
+      >
         <CheckCircle size={14} />
-        <span>تم ربط مفتاح API</span>
-      </div>
+        <span>تم الربط</span>
+      </button>
     );
   }
 
@@ -63,14 +123,6 @@ export const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({ onKeySelected }) =
         <Key size={16} />
         اختيار مفتاح API
       </button>
-      <a 
-        href="https://ai.google.dev/gemini-api/docs/billing" 
-        target="_blank" 
-        rel="noopener noreferrer"
-        className="text-xs text-blue-500 flex items-center gap-1 hover:underline"
-      >
-        معلومات عن الفوترة <ExternalLink size={10}/>
-      </a>
     </div>
   );
 };

@@ -9,7 +9,7 @@ import { LayoutDashboard, FileVideo, HeartPulse } from 'lucide-react';
 
 const App: React.FC = () => {
   const [activeView, setActiveView] = useState<'dashboard' | 'video'>('dashboard');
-  const [isApiKeyReady, setIsApiKeyReady] = useState(false);
+  const [apiKey, setApiKey] = useState<string>('');
 
   return (
     <div className="min-h-screen bg-slate-50 pb-12 flex flex-col">
@@ -58,7 +58,7 @@ const App: React.FC = () => {
 
           <div className="flex items-center gap-2">
              <ReportButton />
-             <ApiKeyManager onKeySelected={() => setIsApiKeyReady(true)} />
+             <ApiKeyManager onKeyProvided={setApiKey} />
           </div>
         </div>
       </header>
@@ -114,8 +114,8 @@ const App: React.FC = () => {
           </div>
         ) : (
           <div className="max-w-3xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {isApiKeyReady ? (
-               <VideoGenerator />
+            {apiKey ? (
+               <VideoGenerator apiKey={apiKey} />
             ) : (
               <div className="bg-white p-12 rounded-xl border border-dashed border-slate-300 text-center">
                 <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-400">
@@ -123,7 +123,7 @@ const App: React.FC = () => {
                 </div>
                 <h3 className="text-xl font-bold text-slate-800 mb-2">مفتاح API مطلوب</h3>
                 <p className="text-slate-600 mb-6">
-                  يرجى اختيار مفتاح API الخاص بك من الشريط العلوي للوصول إلى ميزات توليد الفيديو.
+                  يرجى اختيار مفتاح API الخاص بك أو إدخاله من الشريط العلوي للوصول إلى ميزات توليد الفيديو.
                 </p>
               </div>
             )}
